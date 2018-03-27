@@ -19,12 +19,11 @@ function MultiHyperDB (opts) {
 
   this.path = opts.path || './db'
   this.masterPath = opts.masterPath || this.path + '/master'
-  this.dataPath = opts.dataPath || this.path + '/data'
-  this.dataPrefix = '@dbs/'
+  this.dbPath = opts.dbPath || this.path + '/data'
+  this.dbOpts = opts.dbOpts || {}
   this.storage = opts.storage || this._fileStorage.bind(this)
 
-  this.dataOpts = opts.dataOpts || {}
-
+  this._prefix = '@dbs/'
   this.dbs = {}
   this.opened = false
 
@@ -46,7 +45,7 @@ MultiHyperDB.prototype._ready = function (cb) {
 
   this.master.ready(function (err) {
     if (err) done(err)
-    var stream = self.master.createReadStream(this.dataPrefix)
+    var stream = self.master.createReadStream(this._prefix)
     stream.on('data', load)
     stream.on('end', check)
   })
@@ -102,24 +101,23 @@ MultiHyperDB.prototype.createReadStream = function (prefix) {
       var transform = new Transform({objectMode: true})
       transform._transform = function (nodes, enc, next) {
         function transform (node) {
-          node.dbKey = key
-          return node
+          return {node: node, dbKey: key}
         }
         if (Array.isArray(nodes)) this.push(nodes.map(transform))
         else this.push(transform(nodes))
         next()
       }
-      return self.dbs[key].createReadStream(prefix).pipe(transform)
+      return self.dbs[key].db.createReadStream(prefix).pipe(transform)
     }
   })
 
-  return multistream(streams)
+  return multistream.obj(streams)
 }
 
 MultiHyperDB.prototype.createDB = function (opts, meta, cb) {
   if (typeof meta === 'function') return this.createDB(opts, null, meta)
   var self = this
-  opts = Object.assign({}, this.dataOpts, opts)
+  opts = Object.assign({}, this.dbOpts, opts)
 
   var keyPair = crypto.keyPair()
   opts.secretKey = keyPair.secretKey
@@ -136,7 +134,7 @@ MultiHyperDB.prototype.addDB = function (key, opts, meta, cb) {
   if (typeof meta === 'function') return this.addDB(key, opts, null, meta)
   if (key instanceof Buffer) key = key.toString('hex')
   var self = this
-  opts = Object.assign({}, this.dataOpts, opts)
+  opts = Object.assign({}, this.dbOpts, opts)
 
   if (this.dbs[key]) {
     return cb(null, this.dbs[key])
@@ -201,7 +199,7 @@ MultiHyperDB.prototype._loadDB = function (value, cb) {
   if (this.dbs[value.key]) {
     cb(null, this.dbs[value.key])
   }
-  var opts = Object.assign({}, this.dataOpts, value.opts)
+  var opts = Object.assign({}, this.dbOpts, value.opts)
   var db = hyperdb(this.storage(false, value.key), value.key, opts)
   return this._setDB(db, value, cb)
 }
@@ -234,12 +232,12 @@ MultiHyperDB.prototype._putDB = function (db, opts, meta, cb) {
 
 MultiHyperDB.prototype._keyToPath = function (key) {
   if (key instanceof Buffer) key = key.toString('hex')
-  return this.dataPath + '/' + key.slice(0, 2) + '/' + key.slice(2)
+  return this.dbPath + '/' + key.slice(0, 2) + '/' + key.slice(2)
 }
 
 MultiHyperDB.prototype._keyToPrefix = function (key) {
   if (key instanceof Buffer) key = key.toString('hex')
-  return this.dataPrefix + key
+  return this._prefix + key
 }
 
 MultiHyperDB.prototype._fileStorage = function (master, key, destroy, cb) {

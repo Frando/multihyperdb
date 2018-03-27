@@ -14,7 +14,7 @@ var multi = require('multihyperdb')
 
 var opts = {
   path: './db',
-  dataOpts: {valueEncoding: 'json'}
+  dbOpts: {valueEncoding: 'json'}
 }
 
 var Multi = multi(opts)
@@ -36,15 +36,15 @@ Options include:
 ```js
 {
   path: './db' // Path to store the databases in
-  masterPath, dataPath // Set basepath for master databases and child databases manually
-  dataOpts // default hyperdb opts for child databases
+  masterPath, dbPath // Set basepath for master databases and child databases manually
+  dbOpts // default hyperdb opts for child databases
   storage // callback to return a random-access-storage (see below)
 }
 ```
 
 #### `multi.createDB(opts, meta, cb)`
 
-Create a new hyperdb. `opts` are regular hyperdb opts (they override the global `dataOpts`). `meta` may have any JSON to be stored in the master hyperdb for this child db. `cb` will be called with `(err, db)` after the database is ready.
+Create a new hyperdb. `opts` are regular hyperdb opts (they override the global `dbOpts`). `meta` may have any JSON to be stored in the master hyperdb for this child db. `cb` will be called with `(err, db)` after the database is ready.
 
 #### `multi.addDB(key, opts, meta, cb)`
 
@@ -60,7 +60,7 @@ Execute a callback for each database. `callback`s parameters are `(db, key, meta
 
 #### `multi.createReadStream(prefix)`
 
-Get a combined read stream on all child databases. The `on('data'` callback receives nodes with an additional `dbKey` property along hyperdb's regular `key` and `value` properties.
+Get a combined read stream on all child databases. The `on('data'` callback receives an object with properties `node` (the node as returned from a regular hyperdb read stream, with `key` and `value` properties) and `dbKey` (the key of the database).
 
 #### `multi.getDB(key)`
 

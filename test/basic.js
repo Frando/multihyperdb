@@ -8,6 +8,18 @@ var simpleStorage = function (master, key, destroy, cb) {
   return ram
 }
 
+var createTwo = function (t, M, dbOpts, cb) {
+  M.createDB(dbOpts, {name: 'first'}, function (err, db) {
+    t.error(err, 'no error')
+    M.createDB(dbOpts, {name: 'second'}, function (err, db) {
+      t.error(err, 'no error')
+      db.ready(function () {
+        cb()
+      })
+    })
+  })
+}
+
 tape('basic ops', function (t) {
   var opts = {
     storage: simpleStorage
@@ -15,27 +27,20 @@ tape('basic ops', function (t) {
   var dbOpts = { valueEncoding: 'utf8', reduce: reduce }
 
   var M = multi(opts)
-
-  M.createDB(dbOpts, {name: 'first'}, function (err, db) {
-    t.error(err, 'no error')
-    M.createDB(dbOpts, {name: 'second'}, function (err, db) {
+  createTwo(t, M, dbOpts, function () {
+    var first = M.getDBbyProp('name', 'first', true).db
+    var second = M.getDBbyProp('name', 'second', true).db
+    first.put('hello', 'world', function (err, node) {
       t.error(err, 'no error')
-      db.ready(function () {
-        var first = M.getDBbyProp('name', 'first', true).db
-        var second = M.getDBbyProp('name', 'second', true).db
-        first.put('hello', 'world', function (err, node) {
+      second.put('hello', 'moon', function (err) {
+        t.error(err, 'no error')
+        first.get('hello', function (err, node) {
           t.error(err, 'no error')
-          second.put('hello', 'moon', function (err) {
+          t.same(node.value, 'world', 'First db value matches')
+          second.get('hello', function (err, node) {
             t.error(err, 'no error')
-            first.get('hello', function (err, node) {
-              t.error(err, 'no error')
-              t.same(node.value, 'world', 'First db value matches')
-              second.get('hello', function (err, node) {
-                t.error(err, 'no error')
-                t.same(node.value, 'moon', 'Second db value matches')
-                t.end()
-              })
-            })
+            t.same(node.value, 'moon', 'Second db value matches')
+            t.end()
           })
         })
       })
@@ -61,7 +66,7 @@ tape('reopen', function (t) {
 
   var opts = {
     storage: storage,
-    dataOpts: { reduce: reduce }
+    dbOpts: { reduce: reduce }
   }
   var dbOpts = { valueEncoding: 'utf8' }
 
@@ -97,4 +102,38 @@ tape('reopen', function (t) {
       })
     })
   }
+})
+
+tape('combined read stream', function (t) {
+  var opts = {
+    storage: simpleStorage
+  }
+  var dbOpts = {valueEncoding: 'utf8', reduce: reduce}
+
+  var M = multi(opts)
+  createTwo(t, M, dbOpts, function () {
+    var first = M.getDBbyProp('name', 'first', true).db
+    var second = M.getDBbyProp('name', 'second', true).db
+
+    var expected = []
+    expected.push({key: first.key.toString('hex'), value: 'world'})
+    expected.push({key: second.key.toString('hex'), value: 'moon'})
+
+    first.put('hello', 'world', function (err, node) {
+      t.error(err, 'no error')
+      second.put('hello', 'moon', function (err) {
+        t.error(err, 'no error')
+        var stream = M.createReadStream()
+        var i = 0
+        stream.on('data', function (node) {
+          i++
+          var want = expected.filter(function (val) { return val.key === node.dbKey })[0]
+          t.same(want.value, node.node.value, 'Got correct value from createReadStream')
+          if (i === 2) {
+            t.end()
+          }
+        })
+      })
+    })
+  })
 })
