@@ -101,7 +101,7 @@ Multi.each(function(db) {
 
 Try it out with example-cli.js:
 
-```bash
+```
 $ node example-cli.js db1 create myfirstdb
 db created with key: d7f69b22386fdc7751fb26e6a458a45c1a5d369525ac0e428eaf0331f59ff0e1
 
@@ -111,16 +111,16 @@ Wrote node: Node(key=hello, value='world', seq=0, feed=0))
 $ node example-cli.js db1 share
 
 
-// In another terminal or on another computer
+# In another terminal or on another computer
 
 $ node example-cli.js db2 add remotedb d7f69b22386fdc7751fb26e6a458a45c1a5d369525ac0e428eaf0331f59ff0e1 
 $ node example-cli.js db2 share
 
-// wait, then abort
+# wait, then abort
 
 $ node example-cli.js db2 read
 Node(key=hello, value='world', seq=0, feed=0))
 
-// This was synced from db1.myfirstdb !
+# This was synced from db1.myfirstdb !
 
 ```
