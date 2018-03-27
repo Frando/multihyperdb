@@ -1,0 +1,30 @@
+{
+  "name": "multihyperdb",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "hyperdb": "github:Frando/hyperdb#master",
+    "multistream": "^2.1.0",
+    "readable-stream": "^2.3.5",
+    "rimraf": "^2.6.2",
+    "thunky": "^1.0.2"
+  },
+  "devDependencies": {
+    "standard": "^11.0.1",
+    "tape": "^4.9.0",
+    "random-access-memory": "^2.4.0"
+  },
+  "scripts": {
+    "test": "standard && tape test/*.js"
+  },
+  "author": "Franz Heinzmann",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Frando/multihyperdb/issues"
+  },
+  "homepage": "https://github.com/Frando/multihyperdb#readme"
+}
